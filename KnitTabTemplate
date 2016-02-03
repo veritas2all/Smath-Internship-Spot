@@ -1,0 +1,127 @@
+import javafx.application.Application;
+import javafx.stage.Stage;
+import javafx.stage.FileChooser;
+import javafx.scene.Scene;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.MenuBar;
+import javafx.scene.control.TabPane;
+import javafx.scene.control.Tab;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.control.Label;
+import javafx.scene.layout.HBox;
+import java.io.File;
+public class NitPad extends Application
+{
+    private TabPane tp;
+    private BorderPane bp;
+    private MenuBar mbar;
+    private TextTab activeTab;
+    private Label label;
+    public static void main(String[] args)
+    {
+        launch(args);
+    }
+    @Override
+    public void init()
+    {
+        tp = new TabPane();
+        activeTab = null;
+        bp = new BorderPane();
+        mbar = new MenuBar();
+        label = new Label("New File");
+    }
+    @Override
+    public void start(Stage primary)
+    {
+        primary.setTitle("NitPad");
+        tp.getSelectionModel().selectedItemProperty().addListener( 
+            (obs, oldValue, newValue) ->
+        {
+            activeTab = (TextTab)newValue;//all tabs are texttabs so we can cast.
+            updateStatusBar();
+        });
+        bp.setTop(mbar);
+        bp.setCenter(tp);
+        createFileMenu();
+        createEditMenu();
+        HBox statusBar = new HBox();
+        statusBar.getChildren().add(label);
+        bp.setBottom(statusBar);
+        primary.setScene(new Scene(bp, 600,550));
+        primary.show();
+    } 
+    private void createFileMenu()
+    {
+        Menu fileMenu = new Menu("File");
+        mbar.getMenus().addAll(fileMenu);
+        MenuItem newItem = new MenuItem("New");
+        MenuItem openItem = new MenuItem("Open...");
+        MenuItem saveItem = new MenuItem("Save");
+        MenuItem saveAsItem = new MenuItem("Save As...");
+        MenuItem quitItem = new MenuItem("Quit");
+        fileMenu.getItems().addAll(newItem, openItem, saveItem, 
+            saveAsItem, quitItem);
+        newItem.setOnAction( e ->   
+        {
+            TextTab t = new TextTab();
+            activeTab = t;
+            tp.getTabs().add(t);
+            tp.getSelectionModel().select(t);
+            t.setFile(null);
+            updateStatusBar();
+        });
+        openItem.setOnAction( e ->   
+        {
+            FileChooser fc = new FileChooser();
+            fc.setTitle("Open File");
+            File file = fc.showOpenDialog(new Stage());
+            if(file == null)
+                return;  //user balked; do nothing
+            TextTab t = new TextTab();
+            activeTab = t;
+            t.setFile(file);
+            tp.getTabs().add(t);
+            tp.getSelectionModel().select(t);
+            t.displayText();            
+            updateStatusBar();
+        });
+        saveItem.setOnAction( e ->
+        {
+            File file = null;
+            if(activeTab == null)
+                return;   //pane is empty; nothing to save
+            if(activeTab.getFile() == null) 
+            {
+               
+                FileChooser fc = new FileChooser();
+                fc.setTitle("Save File");
+                file = fc.showSaveDialog(new Stage());
+                if(file == null)
+                    return;  //user balked; do nothing
+            }
+            activeTab.setFile(file);
+            activeTab.saveDisplayedText();
+            label.setText(activeTab.getFile().getAbsolutePath());
+        });
+    }
+    private void createEditMenu()
+    {
+        Menu editMenu = new Menu("Edit");
+        mbar.getMenus().addAll(editMenu);
+    }
+    private void updateStatusBar()
+    {
+        if(activeTab ==null)
+        {
+            return;
+        }
+        if(activeTab.getFile() == null)
+        {   
+            label.setText("New File");
+            return;
+        }
+        label.setText(activeTab.getFile().getAbsolutePath());
+    }
+    //ensure your file is not null before calling this.
+}
